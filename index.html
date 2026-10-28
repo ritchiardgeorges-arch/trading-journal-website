@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trading Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600&family=Bebas+Neue&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eceef6;--panel:#fff;--ink:#14183a;--mut:#6b7094;--line:#d9dcec;--gold:#a67c1f;--gain:#12936a;--loss:#d23a58;--hero:linear-gradient(135deg,#1b2260,#3a2a7a 55%,#6a2f77);--herotx:#f4f1ff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0e20;--panel:#141937;--ink:#eceefb;--mut:#8f95c0;--line:#262d5a;--gold:#e0bb62;--gain:#3fe0a0;--loss:#ff6f8a;--hero:linear-gradient(135deg,#1d2670,#4a2f93 55%,#8a3a86)}}
+:root[data-theme="dark"]{--bg:#0b0e20;--panel:#141937;--ink:#eceefb;--mut:#8f95c0;--line:#262d5a;--gold:#e0bb62;--gain:#3fe0a0;--loss:#ff6f8a;--hero:linear-gradient(135deg,#1d2670,#4a2f93 55%,#8a3a86)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,sans-serif}
+.wrap{max-width:none;width:auto;margin:0 0 0 190px;padding:20px clamp(14px,2.5vw,44px) 48px}
+.hero{background:var(--hero);color:var(--herotx);border-radius:22px;padding:26px 28px;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;justify-content:space-between;border:1px solid rgba(224,187,98,.35)}
+h1{font:600 clamp(30px,5vw,46px)/1 "Cormorant Garamond",Georgia,serif;margin:0 0 6px;letter-spacing:.01em}
+.sub{opacity:.75;font-size:13px}
+.net{text-align:right}.net b{font:700 clamp(30px,5vw,44px)/1 "Cormorant Garamond",Georgia,serif;display:block}
+.net b.p{color:#6ff0b8}.net b.n{color:#ff8fa6}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.st{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.st span{color:var(--mut);font-size:12px;display:block}.st b{font-size:18px}
+.bar{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 10px}
+.bar h2{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:7px 13px}
+button:hover{border-color:var(--gold)}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.gold{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,1fr) 1.15fr;gap:6px}
+.dow{color:var(--mut);font-size:12px;text-align:center;padding:4px 0}
+.d{min-height:clamp(76px,11vh,120px);border-radius:12px;border:1px solid var(--line);background:var(--panel);padding:7px 8px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.d.out{opacity:.45}
+.d.g{background:color-mix(in srgb,var(--gain) var(--a),var(--panel))}
+.d.l{background:color-mix(in srgb,var(--loss) var(--a),var(--panel))}
+.d.today{box-shadow:0 0 0 2px var(--gold)}
+.d i{font-style:normal;font-size:12px;color:var(--mut)}
+.d b{font-size:14px}.d small{color:var(--mut);font-size:11px}
+.pos{color:var(--gain)}.neg{color:var(--loss)}
+.w{min-height:clamp(76px,11vh,120px);border-radius:12px;border:1px dashed var(--gold);padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between}
+.w i{font-style:normal;font-size:11px;color:var(--gold);font-weight:600}.w b{font-size:15px}
+dialog{border:1px solid var(--gold);border-radius:20px;background:var(--panel);color:var(--ink);width:min(640px,94vw);max-height:92vh;padding:22px;margin:auto}
+dialog::backdrop{background:rgba(8,10,28,.62)}
+dialog h3{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+input,select,textarea{font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+input[type=text]{width:110px}input[type=number]{width:120px}
+textarea{width:100%;min-height:130px;resize:vertical;line-height:1.55}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:10px;background:var(--bg);margin-bottom:5px}
+.tr button{padding:2px 8px;margin-left:8px}
+.lab{font-weight:700;margin:16px 0 6px;color:var(--gold)}
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.imgs div{position:relative}.imgs img{width:100%;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in}
+.imgs button{position:absolute;top:4px;right:4px;padding:0 7px;border-radius:99px}
+#lb{position:fixed;inset:0;background:rgba(5,6,18,.9);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
+#lb img{max-width:100%;max-height:100%;border-radius:12px}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}.cal{gap:3px}.d,.w{min-height:64px;padding:4px}.d b{font-size:11px}.w b{font-size:11px}.d small{display:none}.hero{padding:20px}.net{text-align:left}}
+html:root:root:root{color-scheme:dark;--bg:#000;--panel:#0c0c0f;--ink:#f3f3f6;--mut:#8b8b96;--line:#1f1f26;--gold:#a78bfa;--gain:#23d6a0;--loss:#ff5d7c;--hero:linear-gradient(135deg,#17123a,#050507 72%)}
+.hero{border-color:#2a2540}
+.tabs{display:flex;gap:6px;margin:16px 0 0}.tabs button.on{background:var(--gold);color:#0a0a0f;border-color:var(--gold);font-weight:700}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.card h4{margin:0 0 8px;font-size:14px;font-weight:700}
+.card svg{width:100%;height:auto;display:block}
+.stats{grid-template-columns:repeat(5,1fr)}.st b{font-size:22px}.st small{color:var(--mut);font-size:12px}
+@media(max-width:640px){.g2{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+[hidden]{display:none!important}
+.side{display:flex;flex-direction:column;gap:14px;padding:0 clamp(14px,2.5vw,44px) 40px}
+.rm{outline:none;padding:4px 2px;cursor:text;background:none;color:#fff}
+.rm:focus{box-shadow:0 0 0 2px var(--gold)}
+.side.r .rm{text-align:right}
+.w1,.b1{background:none;border:0;color:#fff}.b1{color:#bdbdbd}
+.f1{font:italic 600 clamp(22px,2vw,34px)/1.1 'Playfair Display',Georgia,serif}
+.f2{font:400 clamp(32px,3vw,54px)/.95 'Bebas Neue',Impact,sans-serif;letter-spacing:.03em}
+.f3{font:700 clamp(20px,1.7vw,28px)/1.2 Manrope,system-ui,sans-serif}
+.f4{font:500 clamp(14px,1.1vw,17px)/1.4 Manrope,system-ui,sans-serif}
+.f5{font:500 clamp(22px,2vw,32px)/1.1 'Cormorant Garamond',Georgia,serif}
+.tabs{flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:99px;padding:1px 8px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%}
+#jv .card,#nv .card{margin-bottom:10px}
+.tabs{position:fixed;left:0;top:0;bottom:0;width:190px;flex-direction:column;flex-wrap:nowrap;gap:8px;margin:0;padding:calc(24px + env(safe-area-inset-top,0px)) 14px 20px;background:var(--panel);border-right:1px solid var(--line);z-index:5}
+.tabs::before{content:"Trading Journal";font:600 24px/1.1 'Cormorant Garamond',Georgia,serif;margin-bottom:16px;color:var(--ink)}
+.tabs button{text-align:left;width:100%}
+#cloud{text-align:center}
+@media(max-width:800px){.tabs{position:static;width:auto;flex-direction:row;flex-wrap:wrap;background:none;border:0;padding:0 0 10px}.tabs::before{display:none}.tabs button{width:auto}.wrap{margin-left:0}}
+.goalgrid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.mini{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:340px}.mh{text-align:center;color:var(--mut);font-size:11px}
+.mc{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:7px;font-size:11px;background:var(--bg);color:var(--mut)}.mc.tdy{box-shadow:0 0 0 2px var(--gold);color:var(--ink)}
+.pb{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0}.pb i{display:block;height:100%;border-radius:99px;transition:width .5s}
+#dash{zoom:.88}
+.g3{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:900px){.g3{grid-template-columns:1fr}}
+html:root:root:root[data-theme="light"]{color-scheme:light;--bg:#f3f3f5;--panel:#fff;--ink:#0b0b0f;--mut:#6b6b76;--line:#e1e1e7;--gold:#6a4bd8;--gain:#0f9a72;--loss:#d3314d}
+html:root:root:root[data-theme="cozy"]{color-scheme:dark;--bg:#2a1f1a;--panel:#372a23;--ink:#f6e9d8;--mut:#b7a08a;--line:#4b3a31;--gold:#e8a85c;--gain:#9bd18b;--loss:#f08a7e;--hero:linear-gradient(135deg,#5e3d2b,#2f221b 72%);--herotx:#fbefdc}
+[data-theme="cozy"] .hero{border-color:#7a5640}
+[data-theme="cozy"] .card,[data-theme="cozy"] .st,[data-theme="cozy"] .d,[data-theme="cozy"] .w{border-radius:18px}
+.st4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+@media(max-width:640px){.st4{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div><h1>Trading Journal</h1><div class="sub">Log the trades, keep the lessons.</div></div>
+    <div class="net"><span class="sub" id="mlabel"></span><b id="mnet">$0</b></div>
+  </div>
+  <div class="tabs"><button id="tdash" class="on">Dashboard</button><button id="tcal">Calendar</button><button id="teq">Equity Curve</button><button id="tjv">Journal</button><span style="flex:1"></span><span id="cloud" style="color:var(--mut);font-size:12px;align-self:center"></span><button id="th">White mode</button><button id="bk" hidden>Backup</button><button id="rs">Restore</button><input type="file" id="rf" accept=".json" hidden></div>
+  <div class="bar" id="mbar">
+    <button id="prev" aria-label="Previous month">‹</button>
+    <h2 id="title"></h2>
+    <div><button id="today">Today</button> <button id="next" aria-label="Next month">›</button></div>
+  </div>
+  <div id="dash">
+  <div class="row" style="justify-content:space-between"><span style="color:var(--mut)">Performance overview</span><select id="rng" aria-label="Range"><option value="m">Month shown</option><option value="all">All time</option></select></div>
+  <div class="stats" id="stats"></div>
+  <div class="g3"><div class="card"><h4>Journal score</h4><div id="radar"></div></div><div class="card"><h4>Net daily P&amp;L</h4><div id="bars"></div></div><div class="card" style="display:flex;flex-direction:column;justify-content:space-between;gap:14px"><h4>Discipline</h4><div id="quote" style="flex:1;display:flex;align-items:center;color:var(--ink);transition:opacity .35s;font-size:clamp(24px,2.4vw,38px)"></div><div><button id="nq">Next reminder</button></div></div><div id="cum" hidden></div></div>
+  <div class="g2"><div class="card"><h4>Recent trades</h4><div id="rec"></div></div><div class="card"><h4>Progress tracker</h4><div id="mini"></div></div></div>
+  </div>
+  <div id="calv" hidden><div class="cal" id="cal"></div></div>
+  <div id="eqv" hidden><div class="card">
+   <div class="row" style="justify-content:space-between;margin-top:0"><h4 style="margin:0;font-size:18px">Equity Curve <span id="eqlab" style="color:var(--mut);font-weight:500;font-size:13px"></span></h4>
+    <div class="row" style="margin:0"><span id="eqc" class="row" style="margin:0" hidden><input type="date" id="eqs" aria-label="Start date"><input type="date" id="eqe" aria-label="End date"></span>
+     <select id="eqr" aria-label="Time frame"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="d90">Last 90 Days</option><option value="custom">Custom Range</option><option value="all" selected>All Time</option></select></div></div>
+   <div class="st4" id="eqstats"></div>
+   <div id="eqchart"></div>
+  </div></div>
+  <div id="jv" hidden>
+   <div class="card"><h4>New journal entry</h4>
+    <div class="row"><input type="text" id="jt" placeholder="Title" aria-label="Title" style="flex:1;min-width:160px;width:auto"><select id="jg" aria-label="Type"><option>Plan</option><option>Review</option><option>Lesson</option><option>Idea</option></select></div>
+    <textarea id="jx" placeholder="Weekly plan, what you learned, rules to follow, ideas to test..."></textarea>
+    <div class="imgs" id="jimgs" style="margin-top:8px"></div>
+    <div class="row"><button id="jup">Add pictures</button><input type="file" id="jf" accept="image/*" multiple hidden><button class="gold" id="jsave">Save entry</button></div>
+   </div>
+   <div id="jlist"></div>
+  </div>
+</div>
+<dialog id="dlg">
+  <div class="row" style="justify-content:space-between;margin-top:0"><h3 id="dt"></h3><button id="close">Close</button></div>
+  <div id="dtot" style="font-weight:700;font-size:18px"></div>
+  <div class="lab">Trades</div>
+  <div id="trs"></div>
+  <div class="row">
+    <input type="text" id="sym" placeholder="Symbol" aria-label="Symbol">
+    <select id="side" aria-label="Side"><option>Long</option><option>Short</option></select>
+    <input type="number" id="pnl" step="any" placeholder="P&amp;L ($)" aria-label="Profit or loss">
+    <button class="gold" id="add">Add trade</button>
+  </div>
+  <div class="lab">Journal</div>
+  <textarea id="note" placeholder="Why did you take these trades? What did you do well, and what will you change tomorrow?"></textarea>
+  <div class="lab">Charts &amp; screenshots</div>
+  <div class="imgs" id="imgs"></div>
+  <div class="row"><button id="upbtn">Add pictures</button><input type="file" id="file" accept="image/*" multiple hidden></div>
+</dialog>
+<div id="lb"><img alt=""></div>
+<script>
+const KEY='trading-journal-v1';
+let data={};try{data=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')}}
+function save(){persist();if(open)queue(open)}
+const $=id=>document.getElementById(id);
+const fmt=n=>(n<0?'-':n>0?'+':'')+'$'+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dayPnl=k=>((data[k]||{}).t||[]).reduce((s,t)=>s+t.p,0);
+const cls=n=>n>0?'pos':n<0?'neg':'';
+let cur=new Date();cur.setDate(1);let open=null;
+
+function render(){
+  const y=cur.getFullYear(),m=cur.getMonth();
+  $('title').textContent=cur.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  $('mlabel').textContent=cur.toLocaleDateString('en-US',{month:'long'})+' net P&L';
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  const start=new Date(y,m,1-first.getDay());
+  let mx=1,net=0,wd=0,ld=0,best=null,trades=0,wins=0;
+  for(let i=1;i<=last.getDate();i++){const k=key(new Date(y,m,i)),e=data[k];if(!e||!(e.t||[]).length)continue;const p=dayPnl(k);mx=Math.max(mx,Math.abs(p));net+=p;p>0?wd++:p<0&&ld++;if(best===null||p>best)best=p;e.t.forEach(t=>{trades++;if(t.p>0)wins++})}
+  const nb=$('mnet');nb.textContent=fmt(net);nb.className=net>0?'p':net<0?'n':'';
+  $('stats').innerHTML=[['Winning days',wd],['Losing days',ld],['Win rate',trades?Math.round(wins/trades*100)+'%':'–'],['Best day',best===null?'–':fmt(best)]].map(s=>`<div class="st"><span>${s[0]}</span><b>${s[1]}</b></div>`).join('');
+  let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat','Week'].map(x=>`<div class="dow">${x}</div>`).join('');
+  const tk=key(new Date());let d=new Date(start),wk=0;
+  while(d<=last||d.getDay()!==0){
+    const k=key(d),e=data[k]||{},has=(e.t||[]).length,p=dayPnl(k),inm=d.getMonth()===m;
+    const a=has?Math.round(14+Math.min(Math.abs(p)/mx,1)*34):0;
+    h+=`<button class="d ${inm?'':'out'} ${has?(p>=0?'g':'l'):''} ${k===tk?'today':''}" style="--a:${a}%" data-k="${k}"><i>${d.getDate()}${(e.note||(e.i||[]).length)?' ✎':''}</i><span>${has?`<b class="${cls(p)}">${fmt(p)}</b><br><small>${e.t.length} trade${e.t.length>1?'s':''}</small>`:''}</span></button>`;
+    wk+=p;
+    if(d.getDay()===6){h+=`<div class="w"><i>Week</i><b class="${cls(wk)}">${wk?fmt(wk):'–'}</b></div>`;wk=0}
+    d.setDate(d.getDate()+1);
+  }
+  $('cal').innerHTML=h;renderDash();renderEq();
+}
+function openDay(k){
+  open=k;data[k]=data[k]||{t:[],i:[],note:''};
+  const [y,mo,dd]=k.split('-');
+  $('dt').textContent=new Date(y,mo-1,dd).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  $('note').value=data[k].note||'';drawDay();
+  if(!$('dlg').open)$('dlg').showModal();
+}
+function drawDay(){
+  const e=data[open],p=dayPnl(open);
+  $('dtot').innerHTML=`Day P&amp;L <span class="${cls(p)}">${fmt(p)}</span>`;
+  $('trs').innerHTML=e.t.length?e.t.map((t,i)=>`<div class="tr"><span>${t.s} · ${t.d}</span><span><b class="${cls(t.p)}">${fmt(t.p)}</b><button data-del="${i}" aria-label="Delete trade">✕</button></span></div>`).join(''):'<div class="sub" style="color:var(--mut)">No trades yet. Add your first one below.</div>';
+  $('imgs').innerHTML=e.i.map((s,i)=>`<div><img src="${s}" alt="Trade screenshot"><button data-rm="${i}" aria-label="Remove picture">✕</button></div>`).join('');
+}
+$('cal').onclick=e=>{const b=e.target.closest('[data-k]');if(b)openDay(b.dataset.k)};
+$('close').onclick=()=>$('dlg').close();
+$('dlg').onclose=()=>{const e=data[open];if(e&&!e.t.length&&!e.i.length&&!e.note)delete data[open];save();render()};
+$('add').onclick=()=>{const p=parseFloat($('pnl').value);if(isNaN(p)){$('pnl').focus();return}
+  data[open].t.push({s:($('sym').value.trim()||'Trade').toUpperCase(),d:$('side').value,p});
+  $('sym').value='';$('pnl').value='';save();drawDay();render()};
+$('trs').onclick=e=>{const b=e.target.closest('[data-del]');if(b){data[open].t.splice(+b.dataset.del,1);save();drawDay();render()}};
+$('note').oninput=()=>{data[open].note=$('note').value;save()};
+$('upbtn').onclick=()=>$('file').click();
+function shrink(f){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.72))};im.src=fr.result};fr.readAsDataURL(f)})}
+$('file').onchange=async e=>{for(const f of e.target.files)data[open].i.push(await shrink(f));e.target.value='';save();drawDay();render()};
+$('imgs').onclick=e=>{const r=e.target.closest('[data-rm]');if(r){data[open].i.splice(+r.dataset.rm,1);save();drawDay();return}
+  if(e.target.tagName==='IMG'){$('lb').firstElementChild.src=e.target.src;$('lb').style.display='flex'}};
+$('lb').onclick=()=>$('lb').style.display='none';
+$('prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);render()};
+$('next').onclick=()=>{cur.setMonth(cur.getMonth()+1);render()};
+$('today').onclick=()=>{cur=new Date();cur.setDate(1);render()};
+let goals={p:1000,w:55,d:10};
+try{Object.assign(goals,JSON.parse(localStorage.getItem('tj-goals')||'{}'))}catch(e){}
+function renderMini(){
+ const y=cur.getFullYear(),m=cur.getMonth(),f=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate(),tk=key(new Date());
+ let mx=1;for(let i=1;i<=n;i++)mx=Math.max(mx,Math.abs(dayPnl(key(new Date(y,m,i)))));
+ let h='<div style="color:var(--mut);font-size:12px;margin-bottom:6px">'+cur.toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div><div class="mini">'+['S','M','T','W','T','F','S'].map(x=>`<span class="mh">${x}</span>`).join('')+'<span></span>'.repeat(f);
+ for(let i=1;i<=n;i++){const k=key(new Date(y,m,i)),has=((data[k]||{}).t||[]).length,p=dayPnl(k),a=has?Math.round(25+Math.min(Math.abs(p)/mx,1)*55):0;h+=`<span class="mc ${k===tk?'tdy':''}" title="${has?fmt(p):''}" style="${has?`background:color-mix(in srgb,var(${p>=0?'--gain':'--loss'}) ${a}%,transparent);color:var(--ink)`:''}">${i}</span>`}
+ $('mini').innerHTML=h+'</div>';
+}
+function renderGoals(net,wr,dwn){
+ renderMini();
+}
+function renderDash(){
+ const all=$('rng').value==='all',y=cur.getFullYear(),m=cur.getMonth(),S=a=>a.reduce((s,t)=>s+t.p,0);
+ const days=Object.keys(data).filter(k=>{if(!(data[k].t||[]).length)return false;if(all)return true;const q=k.split('-');return +q[0]===y&&+q[1]===m+1}).sort();
+ const tr=[];days.forEach(k=>data[k].t.forEach(t=>tr.push({s:t.s,d:t.d,p:t.p,k})));
+ const Wn=tr.filter(t=>t.p>0),Ls=tr.filter(t=>t.p<0),gw=S(Wn),gl=Math.abs(S(Ls));
+ const pf=gl?gw/gl:gw?99:0,aw=Wn.length?gw/Wn.length:0,al=Ls.length?gl/Ls.length:0,rr=al?aw/al:aw?9:0;
+ const dp=days.map(dayPnl),dwn=dp.filter(p=>p>0).length,dw=days.length?dwn/days.length:0,wr=tr.length?Wn.length/tr.length:0;
+ let c=0,pk=0,dd=0;const cum=[0];dp.forEach(p=>{c+=p;cum.push(c);pk=Math.max(pk,c);dd=Math.max(dd,pk-c)});
+ const cl=v=>Math.max(0,Math.min(100,v)),net=c;
+ const ax=[['Win %',cl(wr*100)],['Profit factor',cl(pf/2.6*100)],['Avg W/L',cl(rr/2.5*100)],['Day win %',cl(dw*100)],['Drawdown',pk>0?cl((1-dd/pk)*100):0]];
+ const score=tr.length?Math.round(ax.reduce((s,a)=>s+a[1],0)/5):0;renderGoals(net,wr,dwn);
+ const cd=(l,v,s,k)=>`<div class="st"><span>${l}</span><b class="${k||''}">${v}</b><br><small>${s}</small></div>`;
+ $('stats').innerHTML=cd('Net P&L',fmt(net),tr.length+' trades',cls(net))+cd('Trade win %',(wr*100).toFixed(1)+'%',Wn.length+' W / '+Ls.length+' L')+cd('Profit factor',pf>=99?'∞':pf.toFixed(2),fmt(gw)+' / '+fmt(-gl))+cd('Day win %',(dw*100).toFixed(1)+'%',dwn+' of '+days.length+' days')+cd('Avg win / loss',rr>=9?'∞':rr.toFixed(2),fmt(aw)+' / '+fmt(-al));
+ const R=78,cx=130,cy=105,pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/5;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+ const poly=f=>ax.map((a,i)=>pt(i,R*f(a)).map(v=>v.toFixed(1)).join(',')).join(' ');
+ const rings=[.33,.66,1].map(f=>`<polygon points="${poly(()=>f)}" fill="none" stroke="var(--line)"/>`).join('');
+ const lbl=ax.map((a,i)=>{const p=pt(i,R+17);return `<text x="${p[0]}" y="${p[1]+4}" text-anchor="middle" font-size="10.5" fill="var(--mut)">${a[0]}</text>`}).join('');
+ $('radar').innerHTML=`<div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 40px 'Cormorant Garamond',Georgia,serif;color:var(--gold)">${score}</span><span style="color:var(--mut)">out of 100</span></div><svg viewBox="0 0 260 215">${rings}<polygon points="${poly(a=>a[1]/100)}" fill="var(--gold)" fill-opacity=".28" stroke="var(--gold)" stroke-width="2"/>${lbl}</svg>`;
+ const em='<div style="color:var(--mut);padding:30px 0">Add trades to see this chart.</div>';
+ if(!days.length){$('cum').innerHTML=em;$('bars').innerHTML=em;$('rec').innerHTML=em;return}
+ const Wd=600,H=220,P=26,mn=Math.min(0,...cum),mxv=Math.max(0,...cum),rg=(mxv-mn)||1,n=cum.length;
+ const X=i=>P+i*(Wd-2*P)/(n-1),Y=v=>H-P-(v-mn)/rg*(H-2*P),col=net>=0?'var(--gain)':'var(--loss)';
+ const pts=cum.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+ $('cum').innerHTML=`<svg viewBox="0 0 ${Wd} ${H}"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${col};stop-opacity:.4"/><stop offset="1" style="stop-color:${col};stop-opacity:0"/></linearGradient></defs><line x1="${P}" x2="${Wd-P}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)" stroke-dasharray="4 4"/><polygon points="${X(0)},${Y(0)} ${pts} ${X(n-1)},${Y(0)}" fill="url(#ga)"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/><text x="${P}" y="14" fill="var(--mut)" font-size="11">${fmt(mxv)}</text><text x="${P}" y="${H-6}" fill="var(--mut)" font-size="11">${fmt(mn)}</text></svg>`;
+ const bw=Math.min(34,(Wd-2*P)/dp.length*.7),mb=Math.max(...dp.map(Math.abs),1),z=H/2;
+ $('bars').innerHTML=`<svg viewBox="0 0 ${Wd} ${H}"><line x1="${P}" x2="${Wd-P}" y1="${z}" y2="${z}" stroke="var(--line)"/>`+dp.map((p,i)=>{const h=Math.abs(p)/mb*(H/2-18),x=P+(i+.5)*(Wd-2*P)/dp.length-bw/2;return `<rect x="${x.toFixed(1)}" y="${p>=0?z-h:z}" width="${bw}" height="${Math.max(h,1.5)}" rx="3" fill="${p>=0?'var(--gain)':'var(--loss)'}"><title>${days[i]}: ${fmt(p)}</title></rect>`}).join('')+`<text x="${P}" y="${H-4}" fill="var(--mut)" font-size="11">${days[0].slice(5)}</text><text x="${Wd-P}" y="${H-4}" text-anchor="end" fill="var(--mut)" font-size="11">${days[days.length-1].slice(5)}</text></svg>`;
+ $('rec').innerHTML=tr.slice().reverse().slice(0,8).map(t=>`<div class="tr"><span>${t.s} <span style="color:var(--mut)">${t.d} on ${t.k.slice(5)}</span></span><b class="${cls(t.p)}">${fmt(t.p)}</b></div>`).join('');
+}
+function tab(d){$('dash').hidden=!d;$('calv').hidden=d;$('tdash').classList.toggle('on',d);$('tcal').classList.toggle('on',!d)}
+$('tdash').onclick=()=>tab(true);$('tcal').onclick=()=>tab(false);$('rng').onchange=render;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let notes=[],jpend=[];
+try{notes=JSON.parse(localStorage.getItem('tj-notes')||'[]')}catch(e){}
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')}};
+function go(v){['dash','calv','eqv','jv'].forEach(x=>$(x).hidden=x!==v);[['tdash','dash'],['tcal','calv'],['teq','eqv'],['tjv','jv']].forEach(a=>$(a[0]).classList.toggle('on',a[1]===v));$('mbar').hidden=!(v==='dash'||v==='calv')}
+$('tdash').onclick=()=>go('dash');$('tcal').onclick=()=>go('calv');$('teq').onclick=()=>go('eqv');$('tjv').onclick=()=>go('jv');
+function drawJ(){
+ $('jimgs').innerHTML=jpend.map((s,i)=>`<div><img src="${s}" alt="New picture"><button data-jr="${i}" aria-label="Remove picture">✕</button></div>`).join('');
+ $('jlist').innerHTML=notes.length?notes.map(n=>`<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;margin:0"><b style="font:600 24px 'Cormorant Garamond',Georgia,serif">${esc(n.t||'Untitled')}</b><span><span class="tag">${n.g}</span> <button data-jd="${n.id}" aria-label="Delete entry">✕</button></span></div><div style="color:var(--mut);font-size:12px">${n.d}</div><p style="white-space:pre-wrap;margin:8px 0">${esc(n.x)}</p><div class="imgs">${n.i.map(s=>`<div><img src="${s}" alt="Journal picture"></div>`).join('')}</div></div>`).join(''):'<div style="color:var(--mut);padding:18px 2px">No entries yet. Write a plan, review or lesson above.</div>';
+}
+$('jup').onclick=()=>$('jf').click();
+$('jf').onchange=async e=>{for(const f of e.target.files)jpend.push(await shrink(f));e.target.value='';drawJ()};
+$('jsave').onclick=()=>{const x=$('jx').value.trim(),t=$('jt').value.trim();if(!x&&!t&&!jpend.length){$('jx').focus();return}notes.unshift({id:Date.now(),d:new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}),t,g:$('jg').value,x,i:jpend});jpend=[];$('jt').value='';$('jx').value='';sv('tj-notes',notes);drawJ();pushNote(notes[0])};
+$('jv').onclick=e=>{const r=e.target.closest('[data-jr]'),d=e.target.closest('[data-jd]');if(r){jpend.splice(+r.dataset.jr,1);drawJ()}else if(d){notes=notes.filter(n=>n.id!=d.dataset.jd);sv('tj-notes',notes);drawJ();dropNote(d.dataset.jd)}else if(e.target.tagName==='IMG'){$('lb').firstElementChild.src=e.target.src;$('lb').style.display='flex'}};
+let db=null,assets=null,dl=null,col=null;const timers={};
+const d2b=u=>{const a=u.split(','),b=atob(a[1]),n=new Uint8Array(b.length);for(let i=0;i<b.length;i++)n[i]=b.charCodeAt(i);return new Blob([n],{type:'image/jpeg'})};
+async function toUrls(arr){for(let i=0;i<arr.length;i++){if(assets&&arr[i].startsWith('data:')){try{arr[i]=(await assets.upload(d2b(arr[i]))).url}catch(e){}}}}
+const cstat=t=>{$('cloud').textContent=t};
+async function pushDay(k){
+ if(!col)return;
+ try{const e=data[k];
+  if(!e||(!e.t.length&&!e.i.length&&!e.note)){await col.doc('day_'+k).delete()}
+  else{await toUrls(e.i);persist();await col.doc('day_'+k).set({k,t:e.t,i:e.i,note:e.note||''})}
+  cstat('Saved to cloud')}catch(err){cstat('Cloud save failed')}
+}
+function queue(k){clearTimeout(timers[k]);timers[k]=setTimeout(()=>pushDay(k),700)}
+async function pushNote(n){if(!col||!n)return;try{await toUrls(n.i);sv('tj-notes',notes);await col.doc('note_'+n.id).set(n);cstat('Saved to cloud')}catch(e){cstat('Cloud save failed')}}
+async function dropNote(id){if(col)try{await col.doc('note_'+id).delete()}catch(e){}}
+$('bk').onclick=async()=>{try{await dl.save({filename:'trading-journal-backup-'+key(new Date())+'.json',data:JSON.stringify({v:1,data,notes})});cstat('Backup saved')}catch(e){if(!e||e.code!=='declined')cstat('Backup failed')}};
+$('rs').onclick=()=>$('rf').click();
+$('rf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!j.data)throw 0;Object.assign(data,j.data);(j.notes||[]).forEach(n=>{if(!notes.some(x=>x.id==n.id))notes.push(n)});notes.sort((a,b)=>b.id-a.id);persist();sv('tj-notes',notes);Object.keys(j.data).forEach(k=>queue(k));notes.forEach(pushNote);render();drawJ();cstat('Backup restored')}catch(err){cstat('That file is not a valid backup')}};
+(async()=>{
+ try{
+  db=await claude.use('db');const user=await claude.use('user');assets=await claude.use('assets');dl=await claude.use('downloads');
+  $('bk').hidden=!dl;
+  if(db&&user){const uid=await user.id();if(uid){col=db.collection('data/users/'+uid);
+   const snap=await col.get(),seen=new Set();
+   snap.docs.forEach(s=>{const v=s.data();if(s.id==='goals'){goals=Object.assign(goals,v);try{localStorage.setItem('tj-goals',JSON.stringify(goals))}catch(e){}}else if(s.id.startsWith('day_')){seen.add(s.id);data[v.k]={t:v.t||[],i:v.i||[],note:v.note||''}}else if(s.id.startsWith('note_')){seen.add(s.id);const i=notes.findIndex(n=>n.id==v.id);if(i<0)notes.push(v);else notes[i]=v}});
+   notes.sort((a,b)=>b.id-a.id);persist();sv('tj-notes',notes);
+   Object.keys(data).forEach(k=>{if(!seen.has('day_'+k))queue(k)});notes.forEach(n=>{if(!seen.has('note_'+n.id))pushNote(n)});
+   cstat('Cloud backup on');render();drawJ()}}
+ }catch(e){cstat('Cloud backup unavailable')}
+})();
+const Q=['Trust the process.','Discipline over emotions.','Patience pays.','Protect your capital.','Trade the plan.','No setup, no trade.','Let winners run.','Losses are lessons.','Consistency beats luck.','Wait. Execute. Repeat.','Think long-term.','Risk first, profit second.','Stay patient, stay profitable.','Master yourself, master trading.','Less trading, more discipline.','Don’t chase. Execute.','One trade at a time.','Process over profit.','Earn your confidence.','Build discipline, build wealth.'];
+const QF=['f1','f2','f5','f3'];let qi=Math.floor(Date.now()/864e5)%Q.length;
+function drawQ(){const q=$('quote');q.className=QF[qi%4];q.textContent=Q[qi]}
+let qt;function nextQ(){const q=$('quote');q.style.opacity=0;setTimeout(()=>{qi=(qi+1)%Q.length;drawQ();q.style.opacity=1},350)}
+function startQ(){clearInterval(qt);qt=setInterval(nextQ,8000)}
+$('nq').onclick=()=>{nextQ();startQ()};drawQ();startQ();
+const TH=['dark','light','cozy'],TN={dark:'Black',light:'White',cozy:'Cozy'};
+function setTheme(t){document.documentElement.dataset.theme=t;$('th').textContent='Theme: '+TN[t];try{localStorage.setItem('tj-theme',t)}catch(e){}}
+let th0='dark';try{th0=localStorage.getItem('tj-theme')||'dark'}catch(e){}
+if(!TN[th0])th0='dark';
+setTheme(th0);$('th').onclick=()=>setTheme(TH[(TH.indexOf(document.documentElement.dataset.theme)+1)%3]);
+function renderEq(){
+ const sel=$('eqr').value,now=new Date(),tk=key(now);
+ $('eqc').hidden=sel!=='custom';
+ let a='0000-00-00',b='9999-12-31',lab='All time';
+ if(sel==='weekly'){const s=new Date(now);s.setDate(now.getDate()-now.getDay());const e=new Date(s);e.setDate(s.getDate()+6);a=key(s);b=key(e);lab='This week'}
+ else if(sel==='monthly'){a=key(new Date(now.getFullYear(),now.getMonth(),1));b=key(new Date(now.getFullYear(),now.getMonth()+1,0));lab='This month'}
+ else if(sel==='d90'){const s=new Date(now);s.setDate(now.getDate()-89);a=key(s);b=tk;lab='Last 90 days'}
+ else if(sel==='custom'){a=$('eqs').value||a;b=$('eqe').value||b;lab='Custom range'}
+ const has=k=>(data[k].t||[]).length;
+ let days=Object.keys(data).filter(k=>has(k)&&k>=a&&k<=b).sort(),pts=[0],labs=['Start'],trades=0;
+ if(sel==='daily'){const all=Object.keys(data).filter(has).sort(),dk=(data[tk]&&has(tk))?tk:all[all.length-1];days=dk?[dk]:[];lab=dk===tk?'Today':'Latest trading day '+dk;days.forEach(k=>data[k].t.forEach(t=>{pts.push(pts[pts.length-1]+t.p);labs.push(t.s);trades++}))}
+ else days.forEach(k=>{pts.push(pts[pts.length-1]+dayPnl(k));labs.push(k.slice(5));trades+=data[k].t.length});
+ $('eqlab').textContent='· '+lab;
+ const net=pts[pts.length-1],pos=net>=0,col=pos?'#39ff88':'#ff2d55';
+ let pk=0,dd=0;pts.forEach(v=>{pk=Math.max(pk,v);dd=Math.max(dd,pk-v)});
+ const cd=(l,v,k)=>`<div class="st"><span>${l}</span><b class="${k||''}">${v}</b></div>`;
+ $('eqstats').innerHTML=cd('Period P&amp;L',fmt(net),cls(net))+cd('Trades',trades)+cd('Peak',fmt(pk))+cd('Max drawdown',dd?fmt(-dd):'$0','neg');
+ if(pts.length<2){$('eqchart').innerHTML='<div style="color:var(--mut);padding:60px 0;text-align:center">No trades in this period. Add trades on the Calendar to see your equity curve.</div>';return}
+ const W=900,H=340,L=66,R=22,T=20,B=34,n=pts.length;
+ let mn=Math.min(0,...pts),mx=Math.max(0,...pts);const pad=((mx-mn)||1)*.1;mn-=pad;mx+=pad;
+ const X=i=>L+i*(W-L-R)/(n-1),Y=v=>T+(mx-v)/(mx-mn)*(H-T-B),bot=H-B;
+ const P=pts.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)),line='M'+P.join(' L');
+ const area=line+` L${X(n-1).toFixed(1)},${bot} L${X(0).toFixed(1)},${bot} Z`,top=Math.min(...pts.map(Y));
+ let g='';for(let i=0;i<5;i++){const v=mn+(mx-mn)*i/4,y=Y(v);g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-opacity=".6"/><text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--mut)">${fmt(Math.round(v))}</text>`}
+ const st=Math.max(1,Math.ceil(n/7));for(let i=0;i<n;i++)if(i%st===0||i===n-1)g+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--mut)">${labs[i]}</text>`;
+ const dots=n<=60?pts.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="${col}"><title>${labs[i]}: ${fmt(v)}</title></circle>`).join(''):'';
+ $('eqchart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Equity curve"><defs><linearGradient id="eqg" gradientUnits="userSpaceOnUse" x1="0" y1="${top}" x2="0" y2="${bot}"><stop offset="0" stop-color="${col}" stop-opacity=".7"/><stop offset=".45" stop-color="${col}" stop-opacity=".2"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient><filter id="eqf" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="6"/></filter></defs>${g}<path d="${area}" fill="url(#eqg)"/><line x1="${L}" x2="${W-R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--mut)" stroke-dasharray="4 4" stroke-opacity=".6"/><path d="${line}" fill="none" stroke="${col}" stroke-width="8" stroke-opacity=".75" stroke-linejoin="round" stroke-linecap="round" filter="url(#eqf)"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+}
+$('eqs').value=key(new Date(new Date().getFullYear(),new Date().getMonth(),1));$('eqe').value=key(new Date());
+$('eqr').onchange=renderEq;$('eqs').onchange=renderEq;$('eqe').onchange=renderEq;
+drawJ();
+render();
+</script>
+</body>
+</html>
