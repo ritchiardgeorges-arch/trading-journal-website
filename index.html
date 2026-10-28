@@ -106,6 +106,12 @@ html:root:root:root[data-theme="cozy"]{color-scheme:dark;--bg:#2a1f1a;--panel:#3
     <div class="net"><span class="sub" id="mlabel"></span><b id="mnet">$0</b></div>
   </div>
   <div class="tabs"><button id="tdash" class="on">Dashboard</button><button id="tcal">Calendar</button><button id="teq">Equity Curve</button><button id="tjv">Journal</button><span style="flex:1"></span><span id="cloud" style="color:var(--mut);font-size:12px;align-self:center"></span><button id="th">White mode</button><button id="bk" hidden>Backup</button><button id="rs">Restore</button><input type="file" id="rf" accept=".json" hidden></div>
+  <div class="row" id="authbar" style="margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)">
+    <span id="authlabel" style="font-size:13px;color:var(--mut)">Sign in to sync your journal across devices.</span>
+    <input id="authEmail" type="email" autocomplete="email" placeholder="Email" aria-label="Account email" style="width:min(220px,100%)">
+    <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password (min. 6 characters)" aria-label="Account password" style="width:min(220px,100%)">
+    <button id="signup">Create account</button><button class="gold" id="signin">Log in</button><button id="signout" hidden>Log out</button>
+  </div>
   <div class="bar" id="mbar">
     <button id="prev" aria-label="Previous month">‹</button>
     <h2 id="title"></h2>
@@ -153,10 +159,11 @@ html:root:root:root[data-theme="cozy"]{color-scheme:dark;--bg:#2a1f1a;--panel:#3
   <div class="row"><button id="upbtn">Add pictures</button><input type="file" id="file" accept="image/*" multiple hidden></div>
 </dialog>
 <div id="lb"><img alt=""></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY='trading-journal-v1';
 let data={};try{data=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')} scheduleCloudSave()}
 function save(){persist();if(open)queue(open)}
 const $=id=>document.getElementById(id);
 const fmt=n=>(n<0?'-':n>0?'+':'')+'$'+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
@@ -262,7 +269,7 @@ $('tdash').onclick=()=>tab(true);$('tcal').onclick=()=>tab(false);$('rng').oncha
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let notes=[],jpend=[];
 try{notes=JSON.parse(localStorage.getItem('tj-notes')||'[]')}catch(e){}
-const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert('Storage is full. Remove some pictures to keep saving.')} scheduleCloudSave()};
 function go(v){['dash','calv','eqv','jv'].forEach(x=>$(x).hidden=x!==v);[['tdash','dash'],['tcal','calv'],['teq','eqv'],['tjv','jv']].forEach(a=>$(a[0]).classList.toggle('on',a[1]===v));$('mbar').hidden=!(v==='dash'||v==='calv')}
 $('tdash').onclick=()=>go('dash');$('tcal').onclick=()=>go('calv');$('teq').onclick=()=>go('eqv');$('tjv').onclick=()=>go('jv');
 function drawJ(){
@@ -273,35 +280,78 @@ $('jup').onclick=()=>$('jf').click();
 $('jf').onchange=async e=>{for(const f of e.target.files)jpend.push(await shrink(f));e.target.value='';drawJ()};
 $('jsave').onclick=()=>{const x=$('jx').value.trim(),t=$('jt').value.trim();if(!x&&!t&&!jpend.length){$('jx').focus();return}notes.unshift({id:Date.now(),d:new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}),t,g:$('jg').value,x,i:jpend});jpend=[];$('jt').value='';$('jx').value='';sv('tj-notes',notes);drawJ();pushNote(notes[0])};
 $('jv').onclick=e=>{const r=e.target.closest('[data-jr]'),d=e.target.closest('[data-jd]');if(r){jpend.splice(+r.dataset.jr,1);drawJ()}else if(d){notes=notes.filter(n=>n.id!=d.dataset.jd);sv('tj-notes',notes);drawJ();dropNote(d.dataset.jd)}else if(e.target.tagName==='IMG'){$('lb').firstElementChild.src=e.target.src;$('lb').style.display='flex'}};
-let db=null,assets=null,dl=null,col=null;const timers={};
-const d2b=u=>{const a=u.split(','),b=atob(a[1]),n=new Uint8Array(b.length);for(let i=0;i<b.length;i++)n[i]=b.charCodeAt(i);return new Blob([n],{type:'image/jpeg'})};
-async function toUrls(arr){for(let i=0;i<arr.length;i++){if(assets&&arr[i].startsWith('data:')){try{arr[i]=(await assets.upload(d2b(arr[i]))).url}catch(e){}}}}
-const cstat=t=>{$('cloud').textContent=t};
-async function pushDay(k){
- if(!col)return;
- try{const e=data[k];
-  if(!e||(!e.t.length&&!e.i.length&&!e.note)){await col.doc('day_'+k).delete()}
-  else{await toUrls(e.i);persist();await col.doc('day_'+k).set({k,t:e.t,i:e.i,note:e.note||''})}
-  cstat('Saved to cloud')}catch(err){cstat('Cloud save failed')}
+let cloudClient=null,cloudUser=null,cloudTimer=null,cloudLoading=false;
+const SUPABASE_URL='https://euilfltczkhpfusqvrsd.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_Lrvs-aBiWPUgbHunWJMmJw_VNYvstl4';
+function cloudStatus(message){const el=$('cloud');if(el)el.textContent=message;}
+function scheduleCloudSave(){
+  if(!cloudClient||!cloudUser||cloudLoading)return;
+  clearTimeout(cloudTimer);cloudTimer=setTimeout(saveCloudState,800);
 }
-function queue(k){clearTimeout(timers[k]);timers[k]=setTimeout(()=>pushDay(k),700)}
-async function pushNote(n){if(!col||!n)return;try{await toUrls(n.i);sv('tj-notes',notes);await col.doc('note_'+n.id).set(n);cstat('Saved to cloud')}catch(e){cstat('Cloud save failed')}}
-async function dropNote(id){if(col)try{await col.doc('note_'+id).delete()}catch(e){}}
-$('bk').onclick=async()=>{try{await dl.save({filename:'trading-journal-backup-'+key(new Date())+'.json',data:JSON.stringify({v:1,data,notes})});cstat('Backup saved')}catch(e){if(!e||e.code!=='declined')cstat('Backup failed')}};
+async function saveCloudState(){
+  if(!cloudClient||!cloudUser||cloudLoading)return;
+  try{
+    const payload={data,notes,goals};
+    const {error}=await cloudClient.from('journal_data').upsert({user_id:cloudUser.id,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+    if(error)throw error;
+    cloudStatus('Cloud synced ✓');
+  }catch(err){console.error('Cloud save failed:',err);cloudStatus('Cloud save failed — check setup');}
+}
+async function loadCloudState(user){
+  cloudUser=user;cloudLoading=true;
+  $('authlabel').textContent='Signed in: '+(user.email||'your account');
+  $('authEmail').hidden=true;$('authPassword').hidden=true;$('signup').hidden=true;$('signin').hidden=true;$('signout').hidden=false;
+  cloudStatus('Loading cloud journal…');
+  try{
+    const {data:row,error}=await cloudClient.from('journal_data').select('payload').eq('user_id',user.id).maybeSingle();
+    if(error)throw error;
+    if(row&&row.payload){
+      const payload=row.payload;
+      data=payload.data&&typeof payload.data==='object'?payload.data:{};
+      notes=Array.isArray(payload.notes)?payload.notes:[];
+      if(payload.goals&&typeof payload.goals==='object')goals=Object.assign(goals,payload.goals);
+      localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem('tj-notes',JSON.stringify(notes));localStorage.setItem('tj-goals',JSON.stringify(goals));
+      render();drawJ();if(typeof renderEq==='function')renderEq();
+      cloudStatus('Cloud synced ✓');
+    }else{
+      // First sign-in: preserve the current browser journal and create this user's cloud copy.
+      cloudLoading=false;await saveCloudState();cloudLoading=true;
+    }
+  }catch(err){console.error('Cloud load failed:',err);cloudStatus('Cloud connection failed — check table/policies');}
+  finally{cloudLoading=false;}
+}
+async function authAction(kind){
+  const email=$('authEmail').value.trim(),password=$('authPassword').value;
+  if(!email||!password){cloudStatus('Enter your email and password first.');return;}
+  if(password.length<6){cloudStatus('Use a password with at least 6 characters.');return;}
+  cloudStatus(kind==='signup'?'Creating account…':'Logging in…');
+  try{
+    const result=kind==='signup'
+      ? await cloudClient.auth.signUp({email,password})
+      : await cloudClient.auth.signInWithPassword({email,password});
+    if(result.error)throw result.error;
+    if(kind==='signup'&&!result.data.session){cloudStatus('Account created. Check your email to confirm, then log in.');return;}
+    if(result.data.user)await loadCloudState(result.data.user);
+  }catch(err){console.error('Authentication error:',err);cloudStatus(err.message||'Sign-in failed. Check your details.');}
+}
+$('signup').onclick=()=>authAction('signup');
+$('signin').onclick=()=>authAction('signin');
+$('signout').onclick=async()=>{try{await cloudClient.auth.signOut();cloudUser=null;$('authlabel').textContent='Signed out. Sign in to sync your journal.';$('authEmail').hidden=false;$('authPassword').hidden=false;$('signup').hidden=false;$('signin').hidden=false;$('signout').hidden=true;cloudStatus('Local browser copy only');}catch(e){cloudStatus('Could not log out.')}};
+// Compatibility with existing journal actions; all changes now sync as one private user payload.
+function queue(){scheduleCloudSave()}
+async function pushNote(){scheduleCloudSave()}
+async function dropNote(){scheduleCloudSave()}
+$('bk').hidden=false;
+$('bk').onclick=()=>{const blob=new Blob([JSON.stringify({v:1,data,notes,goals},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='trading-journal-backup-'+key(new Date())+'.json';a.click();URL.revokeObjectURL(a.href);cloudStatus('Backup downloaded');};
 $('rs').onclick=()=>$('rf').click();
-$('rf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!j.data)throw 0;Object.assign(data,j.data);(j.notes||[]).forEach(n=>{if(!notes.some(x=>x.id==n.id))notes.push(n)});notes.sort((a,b)=>b.id-a.id);persist();sv('tj-notes',notes);Object.keys(j.data).forEach(k=>queue(k));notes.forEach(pushNote);render();drawJ();cstat('Backup restored')}catch(err){cstat('That file is not a valid backup')}};
-(async()=>{
- try{
-  db=await claude.use('db');const user=await claude.use('user');assets=await claude.use('assets');dl=await claude.use('downloads');
-  $('bk').hidden=!dl;
-  if(db&&user){const uid=await user.id();if(uid){col=db.collection('data/users/'+uid);
-   const snap=await col.get(),seen=new Set();
-   snap.docs.forEach(s=>{const v=s.data();if(s.id==='goals'){goals=Object.assign(goals,v);try{localStorage.setItem('tj-goals',JSON.stringify(goals))}catch(e){}}else if(s.id.startsWith('day_')){seen.add(s.id);data[v.k]={t:v.t||[],i:v.i||[],note:v.note||''}}else if(s.id.startsWith('note_')){seen.add(s.id);const i=notes.findIndex(n=>n.id==v.id);if(i<0)notes.push(v);else notes[i]=v}});
-   notes.sort((a,b)=>b.id-a.id);persist();sv('tj-notes',notes);
-   Object.keys(data).forEach(k=>{if(!seen.has('day_'+k))queue(k)});notes.forEach(n=>{if(!seen.has('note_'+n.id))pushNote(n)});
-   cstat('Cloud backup on');render();drawJ()}}
- }catch(e){cstat('Cloud backup unavailable')}
-})();
+$('rf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!j.data)throw 0;Object.assign(data,j.data);(j.notes||[]).forEach(n=>{if(!notes.some(x=>x.id==n.id))notes.push(n)});notes.sort((a,b)=>b.id-a.id);if(j.goals)goals=Object.assign(goals,j.goals);persist();sv('tj-notes',notes);sv('tj-goals',goals);render();drawJ();scheduleCloudSave();cloudStatus('Backup restored');}catch(err){cloudStatus('That file is not a valid backup');}};
+try{
+  if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase library did not load');
+  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  cloudStatus('Not signed in — local browser copy only');
+  cloudClient.auth.getSession().then(({data:{session}})=>{if(session?.user)loadCloudState(session.user)}).catch(err=>{console.error(err);cloudStatus('Could not check sign-in status');});
+  cloudClient.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user&&(!cloudUser||cloudUser.id!==session.user.id))loadCloudState(session.user);if(event==='SIGNED_OUT'){cloudUser=null;}});
+}catch(err){console.error(err);cloudStatus('Cloud setup not ready');}
 const Q=['Trust the process.','Discipline over emotions.','Patience pays.','Protect your capital.','Trade the plan.','No setup, no trade.','Let winners run.','Losses are lessons.','Consistency beats luck.','Wait. Execute. Repeat.','Think long-term.','Risk first, profit second.','Stay patient, stay profitable.','Master yourself, master trading.','Less trading, more discipline.','Don’t chase. Execute.','One trade at a time.','Process over profit.','Earn your confidence.','Build discipline, build wealth.'];
 const QF=['f1','f2','f5','f3'];let qi=Math.floor(Date.now()/864e5)%Q.length;
 function drawQ(){const q=$('quote');q.className=QF[qi%4];q.textContent=Q[qi]}
